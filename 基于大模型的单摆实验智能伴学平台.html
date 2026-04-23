@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>单摆实验全流程平台 | AI智能助教 (自然语音)</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #f5f7fb;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            color: #1e2a3e;
+            height: 100vh;
+            overflow: hidden;
+            font-size: 18px;
+        }
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100%;
+        }
+        .top-header {
+            background: #1e40af;
+            padding: 0.9rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .title-area h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .badge-note {
+            background: #3b82f6;
+            padding: 0.3rem 1rem;
+            border-radius: 40px;
+            color: white;
+            font-size: 0.9rem;
+        }
+        .main-layout {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        .sidebar {
+            width: 220px;
+            background: #ffffff;
+            border-right: 1px solid #e2e8f0;
+            padding: 1.5rem 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            overflow-y: auto;
+        }
+        .nav-item {
+            background: transparent;
+            border: none;
+            text-align: left;
+            padding: 10px 16px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #334155;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+        }
+        .nav-item i { width: 24px; font-size: 1.1rem; color: #5b6e8c; }
+        .nav-item:hover { background: #f1f5f9; transform: translateY(-1px); }
+        .nav-item.active {
+            background: #fef2f2;
+            border-left: 3px solid #ef4444;
+            color: #b91c1c;
+            font-weight: 600;
+        }
+        .nav-item.active i { color: #ef4444; }
+        .right-content {
+            flex: 1;
+            background: #ffffff;
+            overflow-y: auto;
+            padding: 1.5rem 2rem 2rem 2rem;
+            line-height: 1.5;
+        }
+        .ai-message-box {
+            background: #eff6ff;
+            border-left: 5px solid #3b82f6;
+            border-radius: 16px;
+            padding: 14px 20px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.95rem;
+            color: #1e40af;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        }
+        .voice-control {
+            margin-left: auto;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2rem;
+            color: #3b82f6;
+            padding: 4px 8px;
+            border-radius: 40px;
+            transition: 0.2s;
+        }
+        .voice-control:hover {
+            background: #dbeafe;
+        }
+        .float-tip {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #fffbeb;
+            border-left: 5px solid #f59e0b;
+            border-radius: 12px;
+            padding: 10px 16px;
+            font-size: 0.85rem;
+            max-width: 320px;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: opacity 0.3s;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .float-tip.show { opacity: 1; }
+        .card-panel {
+            background: #ffffff;
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            border: 1px solid #eef2f6;
+            margin-bottom: 24px;
+        }
+        .sub-tabs {
+            display: flex;
+            gap: 12px;
+            border-bottom: 2px solid #eef2f6;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        .sub-tab-btn {
+            background: none;
+            border: none;
+            padding: 8px 20px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: #64748b;
+            border-radius: 40px;
+            transition: 0.2s;
+        }
+        .sub-tab-btn.active {
+            background: #eef2ff;
+            color: #1e40af;
+        }
+        .sub-content { display: none; }
+        .sub-content.active { display: block; }
+        .simu-layout { display: flex; flex-wrap: wrap; gap: 24px; }
+        .canvas-area {
+            flex: 1.5;
+            min-width: 320px;
+            background: #ffffff;
+            border-radius: 24px;
+            border: 1px solid #eef2f6;
+            padding: 16px;
+        }
+        canvas {
+            width: 100%;
+            height: auto;
+            background: #fff;
+            border-radius: 16px;
+            border: 1px solid #eef2f6;
+        }
+        .control-panel {
+            flex: 1;
+            background: #fafcff;
+            border-radius: 24px;
+            padding: 18px;
+            border: 1px solid #eef2f6;
+        }
+        .param-slider {
+            margin-bottom: 20px;
+        }
+        .param-slider label {
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.95rem;
+        }
+        .param-slider .param-value {
+            color: #f97316;
+            font-weight: 700;
+        }
+        input[type="range"] { width: 100%; margin: 8px 0; }
+        .btn-group { display: flex; gap: 12px; margin: 16px 0; flex-wrap: wrap; }
+        button {
+            background: #1e5a7a;
+            border: none;
+            color: white;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.9rem;
+        }
+        button:hover { background: #0f3b5e; transform: translateY(-1px); }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            margin: 16px 0;
+        }
+        .data-table th, .data-table td {
+            border: 1px solid #eef2f6;
+            padding: 8px;
+            text-align: center;
+        }
+        .data-table th { background: #f8fafc; }
+        .result-card {
+            background: #f8fafc;
+            border-radius: 20px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+        .quiz-item {
+            background: #fafcff;
+            border-radius: 20px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border: 1px solid #eef2f6;
+        }
+        .quiz-option {
+            display: block;
+            margin: 8px 0;
+            padding: 8px;
+            background: white;
+            border-radius: 40px;
+            cursor: pointer;
+            border: 1px solid #eef2f6;
+            font-size: 0.9rem;
+        }
+        .highlight-data { color: #f97316; font-weight: 700; background: rgba(249,115,22,0.1); padding: 2px 6px; border-radius: 20px; display: inline-block; }
+        .highlight-blue { color: #1e6faf; font-weight: 700; background: rgba(30,111,175,0.1); padding: 2px 6px; border-radius: 20px; }
+        .highlight-green { color: #15803d; font-weight: 700; background: rgba(21,128,61,0.1); padding: 2px 6px; border-radius: 20px; }
+        .highlight-orange { color: #ea580c; font-weight: 700; }
+        footer { text-align: center; margin-top: 32px; font-size: 0.8rem; color: #8a99b4; }
+        @media (max-width: 860px) {
+            .sidebar { width: 80px; padding: 1rem 0.5rem; }
+            .sidebar .nav-item span { display: none; }
+            .sidebar .nav-item { justify-content: center; padding: 12px 0; }
+            .right-content { padding: 1rem; }
+            .top-header .title-area h1 { font-size: 1.2rem; }
+            .badge-note { display: none; }
+            body { font-size: 16px; }
+        }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <div class="top-header">
+        <div class="title-area">
+            <h1><i class="fas fa-chalkboard-user"></i> 单摆实验全流程交互式虚拟教学平台</h1>
+        </div>
+        <div class="badge-note">📐 AI 智能助教 · 自然语音指导</div>
+    </div>
+    <div class="main-layout">
+        <div class="sidebar">
+            <button class="nav-item active" data-panel="theory"><i class="fas fa-book-open"></i><span> 实验基础</span></button>
+            <button class="nav-item" data-panel="simulation"><i class="fas fa-chalkboard"></i><span> 虚拟仿真</span></button>
+            <button class="nav-item" data-panel="data"><i class="fas fa-chart-line"></i><span> 数据处理</span></button>
+            <button class="nav-item" data-panel="error"><i class="fas fa-chart-simple"></i><span> 误差分析</span></button>
+            <button class="nav-item" data-panel="explore"><i class="fas fa-flask"></i><span> 拓展探究</span></button>
+            <button class="nav-item" data-panel="quiz"><i class="fas fa-pen-alt"></i><span> 自测巩固</span></button>
+        </div>
+        <div class="right-content" id="rightContent"></div>
+    </div>
+</div>
+
+<script>
+    // ==================== 语音全局配置 ====================
+    const voiceSet = { speed: 0.9, tone: 1.03, vol: 1 };
+    function aiVoiceSpeak(aiText){
+        window.speechSynthesis.cancel();
+        if(!aiText) return;
+        let voiceMsg = new SpeechSynthesisUtterance(aiText);
+        let voiceList = window.speechSynthesis.getVoices();
+        for(let v of voiceList){
+            if(v.lang.includes('zh-CN')){ voiceMsg.voice = v; break; }
+        }
+        voiceMsg.rate = voiceSet.speed;
+        voiceMsg.pitch = voiceSet.tone;
+        voiceMsg.volume = voiceSet.vol;
+        window.speechSynthesis.speak(voiceMsg);
+    }
+    function stopAiVoice(){ window.speechSynthesis.cancel(); }
+    let speechEnabled = true;
+    function toggleSpeech() {
+        speechEnabled = !speechEnabled;
+        if (!speechEnabled) stopAiVoice();
+        const btn = document.getElementById("voiceToggleBtn");
+        if (btn) btn.innerHTML = speechEnabled ? '<i class="fas fa-volume-up"></i>' : '<i class="fas fa-volume-mute"></i>';
+        const toast = document.createElement("div");
+        toast.textContent = speechEnabled ? "语音播报已开启" : "语音播报已关闭";
+        toast.style.cssText = "position:fixed; bottom:80px; right:20px; background:#333; color:white; padding:6px 12px; border-radius:20px; font-size:0.8rem; z-index:1001";
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 1500);
+    }
+    function addVoiceControlButton() {
+        const msgBox = document.getElementById("ai-message-box");
+        if (!msgBox) return;
+        if (document.getElementById("voiceToggleBtn")) return;
+        const btn = document.createElement("button");
+        btn.id = "voiceToggleBtn";
+        btn.className = "voice-control";
+        btn.innerHTML = '<i class="fas fa-volume-up"></i>';
+        btn.title = "点击关闭/开启语音播报";
+        btn.onclick = (e) => { e.stopPropagation(); toggleSpeech(); };
+        msgBox.appendChild(btn);
+    }
+
+    // ==================== 全局变量 ====================
+    let experimentData = [];
+    let currentChart = null;
+    const FOUR_PI_SQ = 4 * Math.PI * Math.PI;
+    let simRunning = true;
+    let L = 1.0, g_env = 9.81, damping = 0, theta0_deg = 5.0;
+    let theta = theta0_deg * Math.PI/180;
+    let omega = 0;
+    let simTime = 0;
+    let lastTimestamp = null;
+    let lastCrossTime = null;
+    let periodSum = 0, periodCount = 0, currentPeriod = 0;
+    let totalOscillations = 0;
+    let lastAngleSign = (theta>=0)?1:-1;
+    let animationId = null;
+    let canvas, ctx, pivotX, pivotY, pxPerMeter;
+
+    function computeG(L, T){ return FOUR_PI_SQ * L / (T*T); }
+    function computeAverageG(data){
+        let valid = data.filter(d=>d.L>0 && d.T>0);
+        if(valid.length===0) return NaN;
+        let sum=0;
+        for(let p of valid) sum += computeG(p.L, p.T);
+        return sum/valid.length;
+    }
+    function linearFit(data){
+        let valid = data.filter(d=>d.L>0 && d.T>0);
+        if(valid.length<2) return {g_fit:NaN, slope:NaN, intercept:NaN};
+        let n=valid.length;
+        let sumX=0, sumY=0, sumXY=0, sumX2=0;
+        for(let p of valid){
+            let x=p.L, y=p.T*p.T;
+            sumX+=x; sumY+=y; sumXY+=x*y; sumX2+=x*x;
+        }
+        let denom = n*sumX2 - sumX*sumX;
+        if(denom===0) return {g_fit:NaN, slope:NaN, intercept:NaN};
+        let slope = (n*sumXY - sumX*sumY)/denom;
+        let intercept = (sumY - slope*sumX)/n;
+        let g_fit = slope>0 ? FOUR_PI_SQ/slope : NaN;
+        return {g_fit, slope, intercept};
+    }
+
+    function checkStudentData(period, angle, length, dataCount = experimentData.length) {
+        let advice = [];
+        if (angle > 10) advice.push(`⚠️ 摆角 ${angle.toFixed(1)}° 过大（应 <10°），周期公式将不准确，请减小释放角度。`);
+        else if (angle < 2 && angle > 0) advice.push(`📏 摆角 ${angle.toFixed(1)}° 太小，容易受空气阻力影响，建议设为 5° 左右。`);
+        if (period > 0 && length > 0) {
+            let theoreticalT = 2 * Math.PI * Math.sqrt(length / 9.8);
+            let periodError = Math.abs(period - theoreticalT) / theoreticalT;
+            if (periodError > 0.2) advice.push(`🔍 周期与理论值偏差较大（理论周期 ${theoreticalT.toFixed(3)}s），请检查摆长测量是否包含小球半径。`);
+        }
+        if (period < 0.9 && period > 0) advice.push(`⏱️ 单次周期过短，建议用累积法（测 30T）减小计时误差。`);
+        if (dataCount >= 3 && dataCount < 5) advice.push(`📊 已有 ${dataCount} 组数据，再记录 ${5 - dataCount} 组即可使用图像法获得更精确结果。`);
+        else if (dataCount >= 5) advice.push(`✅ 数据充足，可以使用图像法。`);
+        else if (dataCount < 3 && dataCount > 0) advice.push(`📈 当前 ${dataCount} 组数据，图像法需要至少 2 组，建议继续改变摆长测量。`);
+        if (dataCount > 1) {
+            let periods = experimentData.map(d => d.T);
+            let avgPeriod = periods.reduce((a,b)=>a+b,0)/periods.length;
+            let variance = periods.reduce((s,p)=>s+(p-avgPeriod)**2,0)/periods.length;
+            if (variance > 0.01) advice.push(`📉 周期数据波动较大，可能是计时误差，请多次测量取平均。`);
+        }
+        let msg = advice.length ? advice.join(" ") : "🎉 数据理想，继续加油！";
+        const msgBox = document.getElementById("ai-message-box");
+        if (msgBox) {
+            const oldBtn = msgBox.querySelector("#voiceToggleBtn");
+            msgBox.innerHTML = `<i class="fas fa-robot"></i> <span>${msg}</span>`;
+            if (oldBtn) msgBox.appendChild(oldBtn);
+            else addVoiceControlButton();
+        }
+        if (speechEnabled) {
+            if (advice.length > 0) aiVoiceSpeak(advice.join("。"));
+            else if (msg.includes("数据理想")) aiVoiceSpeak("数据理想，继续加油！");
+        }
+        return advice;
+    }
+
+    let floatTipTimeout;
+    function showFloatTip(message, duration = 4000) {
+        let tip = document.getElementById("float-tip");
+        if (!tip) { tip = document.createElement("div"); tip.id = "float-tip"; tip.className = "float-tip"; document.body.appendChild(tip); }
+        tip.innerHTML = `<i class="fas fa-lightbulb" style="margin-right:8px;"></i>${message}`;
+        tip.classList.add("show");
+        if (floatTipTimeout) clearTimeout(floatTipTimeout);
+        floatTipTimeout = setTimeout(() => tip.classList.remove("show"), duration);
+    }
+
+    function bindAngleRealTimeTip() {
+        const angleSlider = document.getElementById("angleSlider");
+        if (!angleSlider) return;
+        angleSlider.addEventListener("input", (e) => {
+            let angle = parseFloat(e.target.value);
+            if (angle > 10) showFloatTip("⚠️ 摆角过大！请将初始角控制在 10° 以内以保证简谐运动。", 3000);
+            else if (angle < 2 && angle > 0) showFloatTip("📏 摆角偏小，可适当增大至 5° 左右，减小空气阻力影响。", 3000);
+        });
+    }
+
+    let lastPeriods = [];
+    function checkPeriodStability(period) {
+        if (period <= 0) return;
+        lastPeriods.push(period);
+        if (lastPeriods.length > 5) lastPeriods.shift();
+        if (lastPeriods.length >= 3) {
+            let avg = lastPeriods.reduce((a,b)=>a+b,0)/lastPeriods.length;
+            let maxDiff = Math.max(...lastPeriods.map(p=>Math.abs(p-avg)));
+            if (maxDiff < 0.005) { showFloatTip("✅ 周期已稳定，可以记录当前数据！", 4000); lastPeriods = []; }
+        }
+    }
+
+    // ==================== 渲染各模块 ====================
+    // 实验背景：惠更斯画像（1.jpg）
+    // 实验装置：单摆实验装置图（2.jpg）
+    const theorySubContents = {
+        background: `<h3>📖 实验背景</h3><p>单摆实验是高中物理中测量重力加速度的经典实验。伽利略最早发现摆的等时性，惠更斯将其应用于钟表。通过测量摆长和周期，可以精确计算当地重力加速度，理解简谐运动规律。</p>
+                    <div style="text-align:center; margin:20px 0;">
+                        <img src="1.jpg" alt="惠更斯画像" style="max-width:100%; width:200px; border-radius:12px; box-shadow:0 2px 6px rgba(0,0,0,0.1);">
+                        <p style="font-size:0.85rem; margin-top:8px;">克里斯蒂安·惠更斯（Christiaan Huygens）<br>首次将单摆应用于时钟，提出周期公式</p>
+                    </div>`,
+        principle: `<h3>⚛️ 实验原理</h3><p>当摆角 θ < 5° 时，单摆做简谐运动，回复力 F = -mg sinθ ≈ -mgθ，周期公式为：</p>
+                    <div style="background:#f8fafc; padding:12px; border-radius:24px; text-align:center; margin:16px 0;"><span class="highlight-blue">T = 2π √(L/g)</span>  ⇒  <span class="highlight-orange">g = 4π²L / T²</span></div>
+                    <p>通过测量摆长 L 和周期 T，即可计算重力加速度 g。本平台提供虚拟仿真，支持多组数据采集与图像法拟合。</p>`,
+        apparatus: `<h3>🔧 实验装置</h3><p><strong>器材：</strong>铁架台、细线（不可伸长）、小球（直径约2cm）、刻度尺（毫米刻度）、秒表/光电门传感器。</p>
+                    <div style="text-align:center; margin:20px 0;">
+                        <img src="2.jpg" alt="单摆实验装置图" style="max-width:100%; border-radius:12px; box-shadow:0 2px 6px rgba(0,0,0,0.1);">
+                        <p style="font-size:0.85rem; margin-top:8px;">图：单摆实验装置示意图</p>
+                    </div>
+                    <div class="device-svg" style="margin-top:16px;">
+                        <div style="display:flex; justify-content:center; gap:20px; align-items:flex-end;">
+                            <div style="text-align:center;">
+                                <div style="width:120px; height:150px; background:#f0f0f0; border-radius:12px; position:relative;">
+                                    <div style="position:absolute; top:10px; left:50%; width:2px; height:100px; background:#555; transform:translateX(-50%);"></div>
+                                    <div style="position:absolute; bottom:20px; left:50%; width:60px; height:6px; background:#8b5a2b; transform:translateX(-50%); border-radius:4px;"></div>
+                                    <div style="position:absolute; top:calc(10px + 100px); left:50%; width:20px; height:20px; background:#3a86ff; border-radius:50%; transform:translateX(-50%); box-shadow:0 2px 4px rgba(0,0,0,0.2);"></div>
+                                </div>
+                                <p>铁架台 | 摆线 | 摆球</p>
+                            </div>
+                            <div style="text-align:center;">
+                                <i class="fas fa-ruler" style="font-size:40px; color:#f97316;"></i>
+                                <p>刻度尺</p>
+                            </div>
+                            <div style="text-align:center;">
+                                <i class="fas fa-stopwatch" style="font-size:40px; color:#f97316;"></i>
+                                <p>秒表/光电门</p>
+                            </div>
+                        </div>
+                    </div>
+                    <p><strong>装置图：</strong> 细线上端固定于铁架台，下端系小球，摆球在竖直平面内摆动。</p>
+                    <p><i class="fas fa-info-circle"></i> 本平台虚拟仿真模块可调节摆长、摆角、重力环境，完全模拟真实实验操作。</p>`,
+        steps: `<h3>📋 实验步骤</h3>
+                <ol><li>用刻度尺测量摆线长度，多次测量取平均值，加上小球半径得到摆长 L。</li>
+                <li>将摆球拉离平衡位置（摆角 ≤ 5°），静止释放。</li>
+                <li>用秒表测量单摆完成 30~50 次全振动的时间，重复测量多次，计算周期 T。</li>
+                <li>改变摆长，重复上述步骤，获得多组 (L, T) 数据。</li>
+                <li>分别用平均值法和图像法（T²-L 拟合）计算重力加速度 g。</li>
+                <li>分析误差来源，优化实验方案。</li></ol>`
+    };
+    function renderTheoryModule() {
+        return `<div class="card-panel">
+            <div class="sub-tabs"><button class="sub-tab-btn active" data-sub="background">实验背景</button><button class="sub-tab-btn" data-sub="principle">实验原理</button><button class="sub-tab-btn" data-sub="apparatus">实验装置</button><button class="sub-tab-btn" data-sub="steps">实验步骤</button></div>
+            <div id="subContentContainer"><div class="sub-content active" data-sub="background">${theorySubContents.background}</div><div class="sub-content" data-sub="principle">${theorySubContents.principle}</div><div class="sub-content" data-sub="apparatus">${theorySubContents.apparatus}</div><div class="sub-content" data-sub="steps">${theorySubContents.steps}</div></div>
+        </div>`;
+    }
+
+    function renderSimulationModule() {
+        return `<div class="card-panel">
+            <div class="simu-layout">
+                <div class="canvas-area">
+                    <canvas id="pendulumCanvas" width="600" height="400"></canvas>
+                    <div class="btn-group" style="justify-content:center; margin-top:12px;">
+                        <button id="startSimBtn">▶ 开始</button>
+                        <button id="pauseSimBtn">⏸️ 暂停</button>
+                        <button id="resetSimBtn">🔄 重置</button>
+                        <button id="recordDataBtn" style="background:#f97316;">📋 记录当前周期数据</button>
+                    </div>
+                    <div style="margin-top:12px; text-align:center; background:#f8fafc; padding:8px; border-radius:20px;">
+                        <span>⏱️ 实时周期: <strong id="livePeriod" class="highlight-orange">--</strong> s &nbsp;| &nbsp;全振动次数: <strong id="oscCount" class="highlight-blue">0</strong></span>
+                    </div>
+                </div>
+                <div class="control-panel">
+                    <div class="param-slider"><label>📏 摆长 L (m): <span id="L_val" class="param-value">1.00</span></label><input type="range" id="lengthSlider" min="0.4" max="1.5" step="0.01" value="1.0"></div>
+                    <div class="param-slider"><label>🎯 初始角 θ₀ (deg): <span id="theta_val" class="param-value">5.0</span></label><input type="range" id="angleSlider" min="-10" max="10" step="0.5" value="5.0"></div>
+                    <div class="param-slider"><label>🌍 重力加速度 g (m/s²): <span id="g_env_val" class="param-value">9.81</span></label><input type="range" id="gSlider" min="1.6" max="25" step="0.05" value="9.81"></div>
+                    <div class="param-slider"><label>🌀 阻尼系数 β: <span id="damping_val" class="param-value">0.000</span></label><input type="range" id="dampingSlider" min="0" max="0.2" step="0.001" value="0"></div>
+                    <div class="btn-group"><button id="marsGravityBtn" style="background:#c2410c;">🔴 火星重力 (3.71)</button><button id="moonGravityBtn" style="background:#475569;">🌙 月球重力 (1.62)</button></div>
+                    <p class="info" style="font-size:0.8rem; margin-top:12px;">※ AI 助教会根据摆角、周期、数据量实时提醒并语音播报。</p>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    function renderDataModule() {
+        return `<div class="card-panel">
+            <h2><i class="fas fa-chart-line"></i> 数据处理与分析</h2>
+            <div style="overflow-x: auto;"><table class="data-table"><thead><tr><th>序号</th><th>摆长 L (m)</th><th>周期 T (s)</th><th>T² (s²)</th><th>单次 g (m/s²)</th><th>操作</th></tr></thead><tbody id="dataTableBody"></tbody></table></div>
+            <div class="btn-group"><button id="addDataRowBtn"><i class="fas fa-plus"></i> 手动添加数据</button><button id="clearDataBtn" style="background:#64748b;"><i class="fas fa-trash"></i> 清空数据</button><button id="calcAllBtn" style="background:#0f3b5e;"><i class="fas fa-calculator"></i> 计算重力加速度</button></div>
+            <div id="calcResults" class="result-card"><p><strong>📊 计算结果：</strong></p><div id="resultsContent">点击计算按钮查看结果</div></div>
+            <div class="chart-box" style="margin-top:20px;"><canvas id="t2lChart" width="500" height="250"></canvas></div>
+        </div>`;
+    }
+
+    function renderErrorModule() { return `<div class="card-panel"><h2><i class="fas fa-chart-simple"></i> 误差来源分析与优化建议</h2><div id="errorAnalysisContent" style="background:#f8fafc; padding:20px; border-radius:24px;"><p>加载中...</p></div></div>`; }
+    function renderExploreModule() {
+        return `<div class="card-panel"><h2><i class="fas fa-flask"></i> 拓展探究任务</h2><div style="display:flex; flex-wrap:wrap; gap:20px;"><div style="background:#fafcff; padding:16px; border-radius:24px; flex:1; border:1px solid #eef2f6;"><h3>🌍 不同重力环境</h3><p>比较地球、火星、月球上的重力加速度。</p><button class="explore-btn" data-action="mars">切换到火星重力</button></div><div style="background:#fafcff; padding:16px; border-radius:24px; flex:1;"><h3>📐 等效摆长探究</h3><p>实际摆长 = 摆线长 + 小球半径。</p><button class="explore-btn" data-action="radiusTip">提示等效摆长公式</button></div><div style="background:#fafcff; padding:16px; border-radius:24px; flex:1;"><h3>🌀 阻尼对周期的影响</h3><p>调节阻尼系数，观察振幅衰减。</p><button class="explore-btn" data-action="dampingTip">理论解释</button></div></div></div>`;
+    }
+    function renderQuizModule() { return `<div class="card-panel"><h2><i class="fas fa-pen-alt"></i> 自测巩固练习</h2><div id="quizContainer"></div></div>`; }
+
+    // 仿真引擎（完整保留）
+    function initSimulation() {
+        canvas = document.getElementById('pendulumCanvas');
+        if (!canvas) return;
+        ctx = canvas.getContext('2d');
+        function updateCanvasGeometry() {
+            canvas.width = canvas.clientWidth;
+            canvas.height = 400;
+            pivotX = canvas.width/2;
+            pivotY = 70;
+            const maxL = 1.5;
+            const drawSpace = canvas.height - pivotY - 30;
+            pxPerMeter = Math.min(250, Math.max(100, drawSpace / maxL));
+        }
+        function getBobPos() { let lenPx = L * pxPerMeter; return { x: pivotX + lenPx * Math.sin(theta), y: pivotY + lenPx * Math.cos(theta) }; }
+        function calcAlpha() { return -(g_env / L) * Math.sin(theta) - damping * omega; }
+        function updatePhysics(dt) {
+            if (!simRunning) return;
+            if(dt>0.033) dt=0.033;
+            let alpha = calcAlpha();
+            omega += alpha * dt;
+            theta += omega * dt;
+            simTime += dt;
+            let currentSign = theta>=0?1:-1;
+            if(lastAngleSign === -1 && currentSign === 1){
+                let now = simTime;
+                if(lastCrossTime !== null){
+                    let period = now - lastCrossTime;
+                    if(period>0.2 && period<5){
+                        periodSum += period;
+                        periodCount++;
+                        currentPeriod = periodSum/periodCount;
+                        const livePeriodSpan = document.getElementById('livePeriod');
+                        if(livePeriodSpan) livePeriodSpan.innerText = currentPeriod.toFixed(5);
+                        checkPeriodStability(currentPeriod);
+                    }
+                }
+                lastCrossTime = now;
+                totalOscillations++;
+                const oscCountSpan = document.getElementById('oscCount');
+                if(oscCountSpan) oscCountSpan.innerText = totalOscillations;
+            }
+            lastAngleSign = currentSign;
+        }
+        function drawCanvas() {
+            if(!ctx) return;
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0,0,canvas.width,canvas.height);
+            ctx.fillStyle = "#4a6e8c";
+            ctx.beginPath(); ctx.arc(pivotX, pivotY, 8,0,2*Math.PI); ctx.fill();
+            let bob = getBobPos();
+            ctx.beginPath(); ctx.moveTo(pivotX,pivotY); ctx.lineTo(bob.x,bob.y); ctx.strokeStyle="#2c5a7a"; ctx.lineWidth=2; ctx.stroke();
+            ctx.fillStyle = "#3a86ff";
+            ctx.beginPath(); ctx.arc(bob.x,bob.y,14,0,2*Math.PI); ctx.fill();
+            ctx.fillStyle="white";
+            ctx.beginPath(); ctx.arc(bob.x-3,bob.y-4,4,0,2*Math.PI); ctx.fill();
+            ctx.fillStyle = "#1e293b";
+            ctx.font = "bold 14px 'Segoe UI'";
+            ctx.fillText(`L=${L.toFixed(2)}m`, pivotX-50, pivotY-15);
+            ctx.fillText(`θ=${(theta*180/Math.PI).toFixed(1)}°`, pivotX+20, pivotY-15);
+        }
+        function animate(nowMs){
+            if(!lastTimestamp) { lastTimestamp = nowMs; requestAnimationFrame(animate); drawCanvas(); return; }
+            let dt = Math.min(0.033, (nowMs - lastTimestamp)/1000);
+            if(dt>0.001 && simRunning) updatePhysics(dt);
+            drawCanvas();
+            lastTimestamp = nowMs;
+            animationId = requestAnimationFrame(animate);
+        }
+        function resetSimulation(){
+            L = parseFloat(document.getElementById('lengthSlider').value);
+            g_env = parseFloat(document.getElementById('gSlider').value);
+            damping = parseFloat(document.getElementById('dampingSlider').value);
+            theta0_deg = parseFloat(document.getElementById('angleSlider').value);
+            theta = theta0_deg * Math.PI/180;
+            omega = 0;
+            simTime = 0;
+            lastCrossTime = null;
+            periodSum = 0; periodCount=0; currentPeriod=0;
+            totalOscillations=0;
+            lastAngleSign = theta>=0?1:-1;
+            const livePeriodSpan = document.getElementById('livePeriod');
+            const oscCountSpan = document.getElementById('oscCount');
+            if(livePeriodSpan) livePeriodSpan.innerText = "--";
+            if(oscCountSpan) oscCountSpan.innerText = "0";
+            updateCanvasGeometry();
+            drawCanvas();
+        }
+        function syncSliders(){
+            L = parseFloat(document.getElementById('lengthSlider').value);
+            g_env = parseFloat(document.getElementById('gSlider').value);
+            damping = parseFloat(document.getElementById('dampingSlider').value);
+            theta0_deg = parseFloat(document.getElementById('angleSlider').value);
+            const L_span = document.getElementById('L_val');
+            const theta_span = document.getElementById('theta_val');
+            const g_env_span = document.getElementById('g_env_val');
+            const damping_span = document.getElementById('damping_val');
+            if(L_span) L_span.innerText = L.toFixed(2);
+            if(theta_span) theta_span.innerText = theta0_deg.toFixed(1);
+            if(g_env_span) g_env_span.innerText = g_env.toFixed(2);
+            if(damping_span) damping_span.innerText = damping.toFixed(3);
+            resetSimulation();
+        }
+        const lengthSlider = document.getElementById('lengthSlider');
+        const angleSlider = document.getElementById('angleSlider');
+        const gSlider = document.getElementById('gSlider');
+        const dampingSlider = document.getElementById('dampingSlider');
+        const startBtn = document.getElementById('startSimBtn');
+        const pauseBtn = document.getElementById('pauseSimBtn');
+        const resetBtn = document.getElementById('resetSimBtn');
+        const recordBtn = document.getElementById('recordDataBtn');
+        const marsBtn = document.getElementById('marsGravityBtn');
+        const moonBtn = document.getElementById('moonGravityBtn');
+        if(lengthSlider) lengthSlider.addEventListener('input', syncSliders);
+        if(angleSlider) angleSlider.addEventListener('input', syncSliders);
+        if(gSlider) gSlider.addEventListener('input', syncSliders);
+        if(dampingSlider) dampingSlider.addEventListener('input', syncSliders);
+        if(startBtn) startBtn.onclick = () => { simRunning = true; };
+        if(pauseBtn) pauseBtn.onclick = () => { simRunning = false; };
+        if(resetBtn) resetBtn.onclick = () => { resetSimulation(); syncSliders(); };
+        if(recordBtn) recordBtn.onclick = () => {
+            if(currentPeriod>0){
+                experimentData.push({L: L, T: currentPeriod});
+                renderDataTable();
+                updateDataAnalysis();
+                checkStudentData(currentPeriod, theta0_deg, L, experimentData.length);
+                showFloatTip(`已记录数据: L=${L.toFixed(3)}m, T=${currentPeriod.toFixed(4)}s`, 3000);
+                alert('已记录周期数据');
+            } else alert('请等待仿真至少完成一次全振动，获得有效周期。');
+        };
+        if(marsBtn) marsBtn.onclick = () => { if(gSlider) { gSlider.value=3.71; syncSliders(); } };
+        if(moonBtn) moonBtn.onclick = () => { if(gSlider) { gSlider.value=1.62; syncSliders(); } };
+        syncSliders();
+        simRunning = true;
+        lastTimestamp = null;
+        animate(0);
+        window.addEventListener('resize', ()=>{ updateCanvasGeometry(); drawCanvas(); });
+        bindAngleRealTimeTip();
+    }
+
+    function renderDataTable(){
+        let tbody = document.getElementById('dataTableBody');
+        if(!tbody) return;
+        let html='';
+        experimentData.forEach((item,idx)=>{
+            let g_i = computeG(item.L, item.T);
+            html+=`<tr>
+                <td>${idx+1}</td>
+                <td><input type="number" step="0.01" class="editL" data-idx="${idx}" value="${item.L.toFixed(4)}" style="width:80px"></td>
+                <td><input type="number" step="0.01" class="editT" data-idx="${idx}" value="${item.T.toFixed(4)}" style="width:80px"></td>
+                <td>${(item.T*item.T).toFixed(5)}</td>
+                <td>${isNaN(g_i)?'---':`<span class="highlight-data">${g_i.toFixed(4)}</span>`}</td>
+                <td><button class="delRow" data-idx="${idx}" style="background:#fee2e2; color:#b91c1c;">删除</button></td>
+            </tr>`;
+        });
+        tbody.innerHTML=html;
+        document.querySelectorAll('.editL').forEach(inp=>inp.addEventListener('change',(e)=>{ let idx=parseInt(e.target.dataset.idx); let val=parseFloat(e.target.value); if(!isNaN(val)) experimentData[idx].L=val; renderDataTable(); updateDataAnalysis(); }));
+        document.querySelectorAll('.editT').forEach(inp=>inp.addEventListener('change',(e)=>{ let idx=parseInt(e.target.dataset.idx); let val=parseFloat(e.target.value); if(!isNaN(val)) experimentData[idx].T=val; renderDataTable(); updateDataAnalysis(); }));
+        document.querySelectorAll('.delRow').forEach(btn=>btn.addEventListener('click',(e)=>{ let idx=parseInt(btn.dataset.idx); experimentData.splice(idx,1); renderDataTable(); updateDataAnalysis(); }));
+    }
+
+    function drawT2LChart(){
+        let canvasChart = document.getElementById('t2lChart');
+        if(!canvasChart) return;
+        let ctxChart = canvasChart.getContext('2d');
+        let valid = experimentData.filter(d=>d.L>0 && d.T>0);
+        if(currentChart) currentChart.destroy();
+        if(valid.length===0){ currentChart = new Chart(ctxChart, {type:'scatter', data:{datasets:[]}}); return; }
+        let Ls = valid.map(p=>p.L);
+        let T2s = valid.map(p=>p.T*p.T);
+        let fit = linearFit(experimentData);
+        let regressionPoints = null;
+        if(!isNaN(fit.slope) && fit.slope>0){
+            let minL=Math.min(...Ls), maxL=Math.max(...Ls);
+            regressionPoints = [{x:minL, y:fit.slope*minL+fit.intercept},{x:maxL, y:fit.slope*maxL+fit.intercept}];
+        }
+        let datasets = [{ label:'实验数据 (L, T²)', data: Ls.map((x,i)=>({x,y:T2s[i]})), type:'scatter', backgroundColor:'#f97316', pointRadius:6 }];
+        if(regressionPoints) datasets.push({ label:`拟合线 T² = ${fit.slope.toFixed(4)}·L + ${fit.intercept.toFixed(4)}`, data: regressionPoints, type:'line', borderColor:'#2563eb', borderWidth:2, fill:false });
+        currentChart = new Chart(ctxChart, { type:'scatter', data:{datasets}, options:{responsive:true, maintainAspectRatio:true, scales:{x:{title:{display:true, text:'摆长 L (m)'}}, y:{title:{display:true, text:'T² (s²)'}}}} });
+    }
+
+    function updateDataAnalysis(){
+        let avgG = computeAverageG(experimentData);
+        let fit = linearFit(experimentData);
+        let theoryVal = 9.7896;
+        let resultHtml = `<p>📌 平均值法 g = ${isNaN(avgG)?'---':`<span class="highlight-data">${avgG.toFixed(4)} m/s²</span>`}</p>
+                          <p>📈 图像法 g = ${isNaN(fit.g_fit)?'---':`<span class="highlight-green">${fit.g_fit.toFixed(4)} m/s²</span>`} (斜率 k=${isNaN(fit.slope)?'---':`<span class="highlight-blue">${fit.slope.toFixed(5)}</span>`})</p>
+                          <p>📐 理论参考值: <span class="highlight-blue">${theoryVal} m/s²</span></p>`;
+        let resDiv = document.getElementById('resultsContent');
+        if(resDiv) resDiv.innerHTML = resultHtml;
+        drawT2LChart();
+        updateErrorAnalysisPanel();
+    }
+
+    function updateErrorAnalysisPanel(){
+        let avgG = computeAverageG(experimentData);
+        let fit = linearFit(experimentData);
+        let theory = 9.7896;
+        let errAvg = isNaN(avgG)?'--':(Math.abs(avgG-theory)/theory*100).toFixed(2)+'%';
+        let errFit = isNaN(fit.g_fit)?'--':(Math.abs(fit.g_fit-theory)/theory*100).toFixed(2)+'%';
+        let html = `<p><strong>当前实验数据误差评估：</strong></p><p>🔹 平均值法相对误差: <span class="highlight-orange">${errAvg}</span></p><p>🔹 图像法相对误差: <span class="highlight-green">${errFit}</span></p><p><strong>主要误差来源分析：</strong><br>• 摆角过大导致周期公式近似失效（建议θ≤5°）<br>• 摆长测量未计入小球半径<br>• 人工计时反应延迟<br>• 空气阻尼引起振幅衰减<br>• 图像法拟合可有效减小偶然误差。</p><p><strong>优化建议：</strong> 使用光电门传感器、测量多个周期取平均、保持摆角小于5°、采用图像法处理数据。</p>`;
+        let errorDiv = document.getElementById('errorAnalysisContent');
+        if(errorDiv) errorDiv.innerHTML = html;
+    }
+
+    function initQuiz() {
+        let container = document.getElementById('quizContainer');
+        if(!container) return;
+        let questions = [
+            {q:"单摆周期公式 T = 2π√(L/g) 成立的条件是？", options:["摆角任意","摆角小于5°","摆球质量很大"], correct:1, explanation:"小角度近似下 sinθ≈θ，简谐运动。"},
+            {q:"用单摆测重力加速度，为了减小偶然误差，应如何测量周期？", options:["只测一次全振动","测量多次全振动取平均","任意测量"], correct:1, explanation:"测量30~50次全振动时间除以次数可减小计时误差。"},
+            {q:"图像法处理数据时，以 T² 为纵轴、L 为横轴，得到的直线斜率 k 与重力加速度 g 的关系是？", options:["g = 4π²/k","g = 2π/k","g = k/4π²"], correct:0, explanation:"由 T² = (4π²/g) L，斜率 k = 4π²/g，所以 g = 4π²/k。"}
+        ];
+        let html='';
+        questions.forEach((item,idx)=>{
+            html+=`<div class="quiz-item"><p><strong>${idx+1}. ${item.q}</strong></p><div>${item.options.map((opt,optIdx)=>`<label class="quiz-option"><input type="radio" name="q${idx}" value="${optIdx}"> ${opt}</label>`).join('')}</div><div class="feedback" id="fb${idx}"></div><button class="checkQuizBtn" data-idx="${idx}" style="margin-top:8px;">✓ 核对答案</button></div>`;
+        });
+        container.innerHTML = html;
+        document.querySelectorAll('.checkQuizBtn').forEach(btn=>{
+            btn.addEventListener('click',(e)=>{
+                let idx = parseInt(btn.dataset.idx);
+                let selected = document.querySelector(`input[name="q${idx}"]:checked`);
+                let fbDiv = document.getElementById(`fb${idx}`);
+                if(selected){
+                    let val = parseInt(selected.value);
+                    if(val === questions[idx].correct) fbDiv.innerHTML = `<span style="color:#15803d;">✅ 正确！ ${questions[idx].explanation}</span>`;
+                    else fbDiv.innerHTML = `<span style="color:#b91c1c;">❌ 错误。 ${questions[idx].explanation}</span>`;
+                } else fbDiv.innerHTML = `<span style="color:#eab308;">请选择一个选项。</span>`;
+            });
+        });
+    }
+
+    function loadMainModule(moduleId) {
+        const rightDiv = document.getElementById('rightContent');
+        let aiHtml = `<div id="ai-message-box" class="ai-message-box"><i class="fas fa-robot"></i> <span>🤖 AI 助教已就绪，记录实验数据后将为你提供智能分析建议，并语音播报。</span></div>`;
+        let moduleContent = '';
+        if(moduleId === 'theory') moduleContent = renderTheoryModule();
+        else if(moduleId === 'simulation') moduleContent = renderSimulationModule();
+        else if(moduleId === 'data') moduleContent = renderDataModule();
+        else if(moduleId === 'error') moduleContent = renderErrorModule();
+        else if(moduleId === 'explore') moduleContent = renderExploreModule();
+        else if(moduleId === 'quiz') moduleContent = renderQuizModule();
+        rightDiv.innerHTML = aiHtml + moduleContent;
+        addVoiceControlButton();
+
+        if(moduleId === 'theory') {
+            document.querySelectorAll('.sub-tab-btn').forEach(btn => btn.addEventListener('click', (e) => {
+                const sub = btn.getAttribute('data-sub');
+                document.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                document.querySelectorAll('.sub-content').forEach(c => c.classList.remove('active'));
+                document.querySelector(`.sub-content[data-sub="${sub}"]`).classList.add('active');
+            }));
+        } else if(moduleId === 'simulation') {
+            setTimeout(() => { initSimulation(); }, 50);
+        } else if(moduleId === 'data') {
+            renderDataTable();
+            updateDataAnalysis();
+            document.getElementById('addDataRowBtn').onclick = () => { 
+                let newL = 0.6, newT = 1.55;
+                experimentData.push({L: newL, T: newT});
+                renderDataTable();
+                updateDataAnalysis();
+                checkStudentData(newT, 5, newL, experimentData.length);
+            };
+            document.getElementById('clearDataBtn').onclick = () => { experimentData=[]; renderDataTable(); updateDataAnalysis(); };
+            document.getElementById('calcAllBtn').onclick = () => { updateDataAnalysis(); };
+        } else if(moduleId === 'error') {
+            updateErrorAnalysisPanel();
+        } else if(moduleId === 'explore') {
+            document.querySelectorAll('.explore-btn').forEach(btn => btn.addEventListener('click', (e) => {
+                let action = btn.getAttribute('data-action');
+                if(action==='mars') alert('已切换到火星重力环境 (3.71 m/s²)');
+                else if(action==='radiusTip') alert('等效摆长 = 摆线长 + 小球半径。');
+                else if(action==='dampingTip') alert('理论上阻尼不改变简谐运动周期。');
+            }));
+        } else if(moduleId === 'quiz') {
+            initQuiz();
+        }
+    }
+
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const panel = item.getAttribute('data-panel');
+            document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+            item.classList.add('active');
+            loadMainModule(panel);
+        });
+    });
+    loadMainModule('theory');
+</script>
+</body>
+</html>
